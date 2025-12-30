@@ -44,5 +44,5 @@ export function getSeriesAbbreviation(series: string | null | undefined): string
 export function formatCurrency(value: number | string | null | undefined): string {
   if (!value) return '-'
   const num = typeof value === 'string' ? parseFloat(value) : value
-  return `¥${num.toLocaleString()}`
+  return `$${num.toLocaleString()}`
 }

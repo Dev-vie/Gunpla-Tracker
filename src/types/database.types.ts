@@ -11,6 +11,7 @@ export type Database = {
     Tables: {
       gunpla_kits: {
         Row: {
+          brand: Database["public"]["Enums"]["kit_brand"]
           created_at: string
           grade: Database["public"]["Enums"]["gunpla_grade"]
           id: string
@@ -28,6 +29,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          brand?: Database["public"]["Enums"]["kit_brand"]
           created_at?: string
           grade: Database["public"]["Enums"]["gunpla_grade"]
           id?: string
@@ -45,6 +47,7 @@ export type Database = {
           user_id?: string
         }
         Update: {
+          brand?: Database["public"]["Enums"]["kit_brand"]
           created_at?: string
           grade?: Database["public"]["Enums"]["gunpla_grade"]
           id?: string
@@ -114,6 +117,7 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
+      kit_brand: "Bandai" | "SNAA" | "Motor Nuclear" | "In Era+" | "Hemoxian" | "CangDao" | "AniMester" | "Other"
       gunpla_grade: "HG" | "RG" | "MG" | "PG" | "EG" | "SD" | "BB" | "RE/100" | "FM" | "NG"
       gunpla_subline: "HGUC" | "HGIBO" | "HGCE" | "HG00" | "HGAC" | "HGAGE" | "HGBF" | "HGGTO" | "HGBC"
     }

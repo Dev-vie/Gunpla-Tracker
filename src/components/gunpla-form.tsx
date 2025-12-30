@@ -4,12 +4,14 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { createGunplaSchema } from "@/lib/schemas";
+import { createGunplaSchema, kitBrandEnum } from "@/lib/schemas";
 import { createGunplaKit, updateGunplaKit } from "@/lib/gunpla-actions";
 import { Database } from "@/types/database.types";
 import ImageUploadField from "@/components/image-upload-field";
 
 type GunplaKit = Database["public"]["Tables"]["gunpla_kits"]["Row"] | undefined;
+
+const BRANDS = kitBrandEnum.options;
 
 const GRADES = [
   "HG",
@@ -55,6 +57,7 @@ export default function GunplaForm({ kit, onSubmit }: GunplaFormProps) {
   } = useForm({
     resolver: zodResolver(createGunplaSchema),
     defaultValues: {
+      brand: kit?.brand || "Bandai",
       grade: kit?.grade || "HG",
       subline: (kit as any)?.subline || null,
       model_number: kit?.model_number || "",
@@ -73,6 +76,7 @@ export default function GunplaForm({ kit, onSubmit }: GunplaFormProps) {
     kit?.image_url || null
   );
   const imageUrl = watch("image_url");
+  const brand = watch("brand");
   const grade = watch("grade");
 
   useEffect(() => {
@@ -89,6 +93,7 @@ export default function GunplaForm({ kit, onSubmit }: GunplaFormProps) {
 
     try {
       const submitData = {
+        brand: data.brand,
         grade: data.grade,
         subline: data.subline || null,
         model_number: data.model_number,
@@ -128,33 +133,55 @@ export default function GunplaForm({ kit, onSubmit }: GunplaFormProps) {
       )}
 
       <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
-        {/* Grade */}
-        <div>
+        {/* Brand */}
+        <div className="sm:col-span-2">
           <label
-            htmlFor="grade"
+            htmlFor="brand"
             className="block text-sm font-medium text-gray-700 dark:text-gray-300"
           >
-            Grade *
+            Brand
           </label>
           <select
-            {...register("grade")}
+            {...register("brand")}
             className="mt-1 block w-full rounded-lg border border-gray-300 px-4 py-2 text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-800 dark:text-white"
           >
-            {GRADES.map((grade) => (
-              <option key={grade} value={grade}>
-                {grade}
+            {BRANDS.map((b) => (
+              <option key={b} value={b}>
+                {b}
               </option>
             ))}
           </select>
-          {errors.grade && (
-            <p className="mt-1 text-sm text-red-600">
-              {String(errors.grade?.message)}
-            </p>
-          )}
         </div>
 
+        {/* Grade */}
+        {brand === "Bandai" && (
+          <div>
+            <label
+              htmlFor="grade"
+              className="block text-sm font-medium text-gray-700 dark:text-gray-300"
+            >
+              Grade *
+            </label>
+            <select
+              {...register("grade")}
+              className="mt-1 block w-full rounded-lg border border-gray-300 px-4 py-2 text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-800 dark:text-white"
+            >
+              {GRADES.map((grade) => (
+                <option key={grade} value={grade}>
+                  {grade}
+                </option>
+              ))}
+            </select>
+            {errors.grade && (
+              <p className="mt-1 text-sm text-red-600">
+                {String(errors.grade?.message)}
+              </p>
+            )}
+          </div>
+        )}
+
         {/* Subline (HG only) */}
-        {grade === "HG" && (
+        {brand === "Bandai" && grade === "HG" && (
           <div>
             <label
               htmlFor="subline"

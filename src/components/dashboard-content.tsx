@@ -20,6 +20,17 @@ const SUBLINES = [
   "HGBC",
 ];
 
+const BRANDS = [
+  "Bandai",
+  "SNAA",
+  "Motor Nuclear",
+  "In Era+",
+  "Hemoxian",
+  "CangDao",
+  "AniMester",
+  "Other",
+];
+
 export default function DashboardContent() {
   const [kits, setKits] = useState<GunplaKit[]>([]);
   const [filteredKits, setFilteredKits] = useState<GunplaKit[]>([]);
@@ -28,6 +39,7 @@ export default function DashboardContent() {
   const [filter, setFilter] = useState<"all" | "owned" | "wishlist">("all");
   const [gradeFilter, setGradeFilter] = useState<string | null>(null);
   const [sublineFilter, setSublineFilter] = useState<string | null>(null);
+  const [brandFilter, setBrandFilter] = useState<string>("all");
   const [exclusiveFilter, setExclusiveFilter] = useState<
     "all" | "exclusive" | "regular"
   >("all");
@@ -70,8 +82,10 @@ export default function DashboardContent() {
         kit.model_name.toLowerCase().includes(searchLower) ||
         kit.model_number.toLowerCase().includes(searchLower) ||
         kit.series?.toLowerCase().includes(searchLower) ||
-        kit.subline?.toLowerCase().includes(searchLower);
+        kit.subline?.toLowerCase().includes(searchLower) ||
+        kit.brand?.toLowerCase().includes(searchLower);
 
+      const matchesBrand = brandFilter === "all" || kit.brand === brandFilter;
       const matchesGrade = !gradeFilter || kit.grade === gradeFilter;
       const matchesSubline = !sublineFilter || kit.subline === sublineFilter;
       const matchesExclusive =
@@ -81,7 +95,11 @@ export default function DashboardContent() {
           : !(kit as any).exclusive);
 
       return (
-        matchesSearch && matchesGrade && matchesSubline && matchesExclusive
+        matchesSearch &&
+        matchesBrand &&
+        matchesGrade &&
+        matchesSubline &&
+        matchesExclusive
       );
     });
 
@@ -122,6 +140,7 @@ export default function DashboardContent() {
     searchQuery,
     gradeFilter,
     sublineFilter,
+    brandFilter,
     exclusiveFilter,
     sortBy,
     sortOrder,
@@ -162,7 +181,7 @@ export default function DashboardContent() {
             Total Spent
           </p>
           <p className="mt-2 text-3xl font-bold text-blue-600 dark:text-blue-400">
-            ¥{totalSpent.toLocaleString("en-US", { maximumFractionDigits: 0 })}
+            ${totalSpent.toLocaleString("en-US", { maximumFractionDigits: 0 })}
           </p>
         </div>
       </div>
@@ -193,6 +212,33 @@ export default function DashboardContent() {
               </button>
             ))}
           </div>
+        </div>
+
+        {/* Brand Filter */}
+        <div className="flex flex-wrap gap-2">
+          <button
+            onClick={() => setBrandFilter("all")}
+            className={`rounded-lg px-3 py-1 text-sm font-medium transition-colors ${
+              brandFilter === "all"
+                ? "bg-purple-600 text-white"
+                : "border border-gray-300 text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"
+            }`}
+          >
+            All Brands
+          </button>
+          {BRANDS.map((brand) => (
+            <button
+              key={brand}
+              onClick={() => setBrandFilter(brand)}
+              className={`rounded-lg px-3 py-1 text-sm font-medium transition-colors ${
+                brandFilter === brand
+                  ? "bg-blue-600 text-white"
+                  : "border border-gray-300 text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"
+              }`}
+            >
+              {brand}
+            </button>
+          ))}
         </div>
 
         {/* Grade Filter */}
@@ -375,7 +421,7 @@ export default function DashboardContent() {
                 <th className="px-3 py-3 text-left text-sm font-semibold text-gray-900 dark:text-white">
                   Image
                 </th>
-                <th className="px-3 py-3 text-left text-sm font-semibold text-gray-900 dark:text-white">
+                <th className="px-3 py-3 text-left text-sm font-semibold text-gray-900 dark:text-white w-20">
                   Model #
                 </th>
                 <th className="px-3 py-3 text-left text-sm font-semibold text-gray-900 dark:text-white">
@@ -385,7 +431,10 @@ export default function DashboardContent() {
                   Series
                 </th>
                 <th className="px-3 py-3 text-left text-sm font-semibold text-gray-900 dark:text-white">
-                  Grade
+                  Brand
+                </th>
+                <th className="px-3 py-3 text-left text-sm font-semibold text-gray-900 dark:text-white">
+                  Grade/Subline
                 </th>
                 <th className="px-3 py-3 text-left text-sm font-semibold text-gray-900 dark:text-white">
                   Edition
@@ -452,7 +501,7 @@ function KitTableRow({ kit, onDelete }: KitTableRowProps) {
               src={kit.image_url}
               alt={kit.model_name}
               className="h-32 w-52 object-contain rounded shadow-md cursor-pointer hover:opacity-80 transition-opacity"
-              onClick={() => setShowImageModal(true)}
+              onClick={() => setShowImageModal(!showImageModal)}
             />
           ) : (
             <div className="h-32 w-52 bg-gray-300 dark:bg-gray-600 rounded flex items-center justify-center shadow-md">
@@ -466,14 +515,25 @@ function KitTableRow({ kit, onDelete }: KitTableRowProps) {
           {kit.model_number}
         </td>
         <td className="px-3 py-4 text-sm text-gray-900 dark:text-white max-w-[300px]">
-          {kit.model_name}
+          {kit.brand !== "Bandai"
+            ? `${kit.brand} ${kit.model_name}`
+            : kit.model_name}
         </td>
         <td className="px-3 py-4 text-sm text-gray-600 dark:text-gray-300 max-w-[300px]">
           {kit.series || "—"}
         </td>
         <td className="px-3 py-4 text-sm">
+          <span className="inline-block rounded-full bg-purple-100 px-3 py-1 text-xs font-semibold text-purple-800 dark:bg-purple-900 dark:text-purple-200">
+            {kit.brand}
+          </span>
+        </td>
+        <td className="px-3 py-4 text-sm">
           <span className="inline-block rounded-full bg-blue-100 px-3 py-1 text-xs font-semibold text-blue-800 dark:bg-blue-900 dark:text-blue-200">
-            {kit.grade}
+            {kit.brand !== "Bandai"
+              ? "—"
+              : kit.subline && kit.grade === "HG"
+              ? kit.subline
+              : kit.grade}
           </span>
         </td>
         <td className="px-3 py-4 text-sm">
@@ -489,7 +549,7 @@ function KitTableRow({ kit, onDelete }: KitTableRowProps) {
         </td>
         <td className="px-3 py-4 text-sm text-gray-900 dark:text-white">
           {kit.purchase_price
-            ? `¥${parseInt(String(kit.purchase_price)).toLocaleString("en-US")}`
+            ? `$${parseInt(String(kit.purchase_price)).toLocaleString("en-US")}`
             : "—"}
         </td>
         <td className="px-3 py-4 text-sm text-gray-600 dark:text-gray-300">
@@ -528,7 +588,7 @@ function KitTableRow({ kit, onDelete }: KitTableRowProps) {
       {/* Delete Confirmation Modal */}
       {showConfirm && (
         <tr>
-          <td colSpan={10} className="p-4">
+          <td colSpan={11} className="p-4">
             <div className="fixed inset-0 flex items-center justify-center bg-black/50 z-50">
               <div className="rounded-lg bg-white p-6 shadow-lg dark:bg-gray-800">
                 <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
@@ -563,25 +623,22 @@ function KitTableRow({ kit, onDelete }: KitTableRowProps) {
         </tr>
       )}
 
-      {/* Full-Screen Image Modal */}
+      {/* Image Modal */}
       {showImageModal && kit.image_url && (
         <tr>
-          <td colSpan={9} className="p-0">
-            <div
-              className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 p-4"
-              onClick={() => setShowImageModal(false)}
-            >
+          <td colSpan={11} className="p-4 bg-gray-900/50">
+            <div className="flex flex-col items-center gap-4">
               <button
-                className="absolute top-4 right-4 text-white text-4xl font-bold hover:text-gray-300 transition-colors"
+                className="self-end text-white text-2xl font-bold hover:text-gray-300 transition-colors"
                 onClick={() => setShowImageModal(false)}
               >
                 ×
               </button>
-              <div className="relative w-full h-full max-w-6xl max-h-[90vh]">
+              <div className="relative w-full max-w-2xl">
                 <img
                   src={kit.image_url}
                   alt={kit.model_name}
-                  className="w-full h-full object-contain"
+                  className="w-full h-auto rounded-lg shadow-lg"
                 />
               </div>
             </div>
