@@ -48,6 +48,9 @@ export default function DashboardContent() {
     "model_number" | "model_name" | "price" | null
   >(null);
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [showAll, setShowAll] = useState(false);
+  const ITEMS_PER_PAGE = 20;
 
   useEffect(() => {
     loadKits();
@@ -135,6 +138,7 @@ export default function DashboardContent() {
     }
 
     setFilteredKits(filtered);
+    setCurrentPage(1); // Reset to first page when filters change
   }, [
     kits,
     searchQuery,
@@ -145,6 +149,55 @@ export default function DashboardContent() {
     sortBy,
     sortOrder,
   ]);
+
+  // Calculate pagination
+  const totalPages = Math.ceil(filteredKits.length / ITEMS_PER_PAGE);
+  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+  const endIndex = startIndex + ITEMS_PER_PAGE;
+  const currentKits = showAll
+    ? filteredKits
+    : filteredKits.slice(startIndex, endIndex);
+
+  // Generate page numbers to display
+  const getPageNumbers = () => {
+    const pages: (number | string)[] = [];
+    const maxPagesToShow = 7;
+
+    if (totalPages <= maxPagesToShow) {
+      // Show all pages if total is small
+      for (let i = 1; i <= totalPages; i++) {
+        pages.push(i);
+      }
+    } else {
+      // Always show first page
+      pages.push(1);
+
+      if (currentPage <= 3) {
+        // Near the beginning
+        for (let i = 2; i <= 5; i++) {
+          pages.push(i);
+        }
+        pages.push("...");
+        pages.push(totalPages);
+      } else if (currentPage >= totalPages - 2) {
+        // Near the end
+        pages.push("...");
+        for (let i = totalPages - 4; i <= totalPages; i++) {
+          pages.push(i);
+        }
+      } else {
+        // In the middle
+        pages.push("...");
+        for (let i = currentPage - 1; i <= currentPage + 1; i++) {
+          pages.push(i);
+        }
+        pages.push("...");
+        pages.push(totalPages);
+      }
+    }
+
+    return pages;
+  };
 
   // Calculate stats
   const ownedCount = kits.filter((k) => k.owned).length;
@@ -414,58 +467,145 @@ export default function DashboardContent() {
 
       {/* Kits Table */}
       {!loading && filteredKits.length > 0 && (
-        <div className="rounded-lg border-2 border-gray-400 w-full bg-white/10 dark:bg-black/20 dark:border-gray-600 backdrop-blur-sm">
-          <table className="w-full border-collapse min-w-full">
-            <thead>
-              <tr className="border-b-2 border-gray-400 bg-gray-50/30 dark:border-gray-600 dark:bg-gray-900/30">
-                <th className="px-3 py-3 text-left text-sm font-semibold text-gray-900 dark:text-white">
-                  Image
-                </th>
-                <th className="px-3 py-3 text-left text-sm font-semibold text-gray-900 dark:text-white w-20">
-                  Model #
-                </th>
-                <th className="px-3 py-3 text-left text-sm font-semibold text-gray-900 dark:text-white">
-                  Model
-                </th>
-                <th className="px-3 py-3 text-left text-sm font-semibold text-gray-900 dark:text-white">
-                  Series
-                </th>
-                <th className="px-3 py-3 text-left text-sm font-semibold text-gray-900 dark:text-white">
-                  Brand
-                </th>
-                <th className="px-3 py-3 text-left text-sm font-semibold text-gray-900 dark:text-white">
-                  Grade/Subline
-                </th>
-                <th className="px-3 py-3 text-left text-sm font-semibold text-gray-900 dark:text-white">
-                  Edition
-                </th>
-                <th className="px-3 py-3 text-left text-sm font-semibold text-gray-900 dark:text-white">
-                  Price
-                </th>
-                <th className="px-3 py-3 text-left text-sm font-semibold text-gray-900 dark:text-white">
-                  Release
-                </th>
-                <th className="px-3 py-3 text-left text-sm font-semibold text-gray-900 dark:text-white">
-                  Status
-                </th>
-                <th className="px-3 py-3 text-left text-sm font-semibold text-gray-900 dark:text-white">
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredKits.map((kit) => (
-                <KitTableRow
-                  key={kit.id}
-                  kit={kit}
-                  onDelete={(id) => {
-                    setKits(kits.filter((k) => k.id !== id));
+        <>
+          <div className="rounded-lg border-2 border-gray-400 w-full bg-white/10 dark:bg-black/20 dark:border-gray-600 backdrop-blur-sm">
+            <table className="w-full border-collapse min-w-full">
+              <thead>
+                <tr className="border-b-2 border-gray-400 bg-gray-50/30 dark:border-gray-600 dark:bg-gray-900/30">
+                  <th className="px-3 py-3 text-left text-sm font-semibold text-gray-900 dark:text-white">
+                    Image
+                  </th>
+                  <th className="px-3 py-3 text-left text-sm font-semibold text-gray-900 dark:text-white w-20">
+                    Model #
+                  </th>
+                  <th className="px-3 py-3 text-left text-sm font-semibold text-gray-900 dark:text-white">
+                    Model
+                  </th>
+                  <th className="px-3 py-3 text-left text-sm font-semibold text-gray-900 dark:text-white">
+                    Series
+                  </th>
+                  <th className="px-3 py-3 text-left text-sm font-semibold text-gray-900 dark:text-white">
+                    Brand
+                  </th>
+                  <th className="px-3 py-3 text-left text-sm font-semibold text-gray-900 dark:text-white">
+                    Grade/Subline
+                  </th>
+                  <th className="px-3 py-3 text-left text-sm font-semibold text-gray-900 dark:text-white">
+                    Edition
+                  </th>
+                  <th className="px-3 py-3 text-left text-sm font-semibold text-gray-900 dark:text-white">
+                    Price
+                  </th>
+                  <th className="px-3 py-3 text-left text-sm font-semibold text-gray-900 dark:text-white">
+                    Release
+                  </th>
+                  <th className="px-3 py-3 text-left text-sm font-semibold text-gray-900 dark:text-white">
+                    Status
+                  </th>
+                  <th className="px-3 py-3 text-left text-sm font-semibold text-gray-900 dark:text-white">
+                    Actions
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {currentKits.map((kit) => (
+                  <KitTableRow
+                    key={kit.id}
+                    kit={kit}
+                    onDelete={(id) => {
+                      setKits(kits.filter((k) => k.id !== id));
+                    }}
+                  />
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Pagination Controls */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between px-4 py-3 bg-white/20 dark:bg-gray-800/20 backdrop-blur-sm rounded-lg border-2 border-gray-400 dark:border-gray-600">
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-gray-700 dark:text-gray-300">
+                  {showAll
+                    ? `Showing all ${filteredKits.length} kits`
+                    : `Showing ${startIndex + 1} to ${Math.min(
+                        endIndex,
+                        filteredKits.length
+                      )} of ${filteredKits.length} kits`}
+                </span>
+              </div>
+
+              <div className="flex items-center gap-2">
+                {/* Show All Button */}
+                <button
+                  onClick={() => {
+                    setShowAll(!showAll);
+                    if (showAll) setCurrentPage(1);
                   }}
-                />
-              ))}
-            </tbody>
-          </table>
-        </div>
+                  className={`px-4 py-1 rounded-lg text-sm font-medium transition-colors ${
+                    showAll
+                      ? "bg-green-600 text-white hover:bg-green-700"
+                      : "border border-gray-300 text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"
+                  }`}
+                >
+                  {showAll ? "Show Pages" : "Show All"}
+                </button>
+
+                {!showAll && (
+                  <>
+                    {/* Previous Button */}
+                    <button
+                      onClick={() =>
+                        setCurrentPage((prev) => Math.max(1, prev - 1))
+                      }
+                      disabled={currentPage === 1}
+                      className="px-3 py-1 rounded-lg border border-gray-300 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"
+                    >
+                      Previous
+                    </button>
+
+                    {/* Page Numbers */}
+                    <div className="flex gap-1">
+                      {getPageNumbers().map((page, index) =>
+                        page === "..." ? (
+                          <span
+                            key={`ellipsis-${index}`}
+                            className="px-3 py-1 text-gray-500 dark:text-gray-400"
+                          >
+                            ...
+                          </span>
+                        ) : (
+                          <button
+                            key={page}
+                            onClick={() => setCurrentPage(page as number)}
+                            className={`px-3 py-1 rounded-lg text-sm font-medium transition-colors ${
+                              currentPage === page
+                                ? "bg-blue-600 text-white"
+                                : "border border-gray-300 text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"
+                            }`}
+                          >
+                            {page}
+                          </button>
+                        )
+                      )}
+                    </div>
+
+                    {/* Next Button */}
+                    <button
+                      onClick={() =>
+                        setCurrentPage((prev) => Math.min(totalPages, prev + 1))
+                      }
+                      disabled={currentPage === totalPages}
+                      className="px-3 py-1 rounded-lg border border-gray-300 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"
+                    >
+                      Next
+                    </button>
+                  </>
+                )}
+              </div>
+            </div>
+          )}
+        </>
       )}
     </div>
   );

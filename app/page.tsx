@@ -1,4 +1,5 @@
 import Header from "@/components/header";
+import Footer from "@/components/footer";
 import DashboardContent from "@/components/dashboard-content";
 import { createServerClient } from "@/lib/auth-server";
 import { redirect } from "next/navigation";
@@ -29,7 +30,7 @@ export default async function Home() {
     null;
 
   return (
-    <div className="relative min-h-screen bg-gray-50 dark:bg-gray-900 overflow-hidden">
+    <div className="relative min-h-screen bg-gray-50 dark:bg-gray-900 overflow-hidden flex flex-col">
       <div
         className="pointer-events-none fixed inset-0 bg-cover bg-center opacity-70 dark:opacity-60 bg-fixed"
         style={{ backgroundImage: "url('/dashboard-bg.jpg')" }}
@@ -40,11 +41,12 @@ export default async function Home() {
         aria-hidden
       />
 
-      <div className="relative">
+      <div className="relative flex flex-col min-h-screen">
         <Header displayName={displayName} />
-        <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+        <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8 flex-grow">
           <DashboardContent />
         </main>
+        <Footer />
       </div>
     </div>
   );
