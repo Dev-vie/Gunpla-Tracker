@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { getGunplaKits, deleteGunplaKit } from "@/lib/gunpla-actions";
+import { deleteGunplaKit } from "@/lib/gunpla-actions";
 import { Database } from "@/types/database.types";
 
 type GunplaKit = Database["public"]["Tables"]["gunpla_kits"]["Row"];
@@ -31,11 +31,14 @@ const BRANDS = [
   "Other",
 ];
 
-export default function DashboardContent() {
-  const [kits, setKits] = useState<GunplaKit[]>([]);
-  const [filteredKits, setFilteredKits] = useState<GunplaKit[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+interface DashboardContentProps {
+  initialKits: GunplaKit[];
+}
+
+export default function DashboardContent({
+  initialKits,
+}: DashboardContentProps) {
+  const [kits, setKits] = useState<GunplaKit[]>(initialKits);
   const [filter, setFilter] = useState<"all" | "owned" | "wishlist">("all");
   const [gradeFilter, setGradeFilter] = useState<string | null>(null);
   const [sublineFilter, setSublineFilter] = useState<string | null>(null);
@@ -53,33 +56,21 @@ export default function DashboardContent() {
   const ITEMS_PER_PAGE = 20;
 
   useEffect(() => {
-    loadKits();
-  }, [filter]);
-
-  const loadKits = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      const filterType =
-        filter === "all" ? undefined : (filter as "owned" | "wishlist");
-      const data = await getGunplaKits(filterType);
-      setKits(data);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load kits");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
     if (gradeFilter !== "HG") {
       setSublineFilter(null);
     }
   }, [gradeFilter]);
 
-  // Filter by search query and grade
-  useEffect(() => {
-    let filtered = kits.filter((kit) => {
+  // Use useMemo for expensive filtering and sorting operations
+  const filteredKits = useMemo(() => {
+    // Apply ownership filter first
+    let filtered =
+      filter === "all"
+        ? kits
+        : kits.filter((k) => (filter === "owned" ? k.owned : !k.owned));
+
+    // Apply other filters
+    filtered = filtered.filter((kit) => {
       const searchLower = searchQuery.toLowerCase();
       const matchesSearch =
         kit.model_name.toLowerCase().includes(searchLower) ||
@@ -137,10 +128,10 @@ export default function DashboardContent() {
       });
     }
 
-    setFilteredKits(filtered);
-    setCurrentPage(1); // Reset to first page when filters change
+    return filtered;
   }, [
     kits,
+    filter,
     searchQuery,
     gradeFilter,
     sublineFilter,
@@ -149,6 +140,11 @@ export default function DashboardContent() {
     sortBy,
     sortOrder,
   ]);
+
+  // Reset to first page when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [filteredKits.length]);
 
   // Calculate pagination
   const totalPages = Math.ceil(filteredKits.length / ITEMS_PER_PAGE);
@@ -199,19 +195,21 @@ export default function DashboardContent() {
     return pages;
   };
 
-  // Calculate stats
-  const ownedCount = kits.filter((k) => k.owned).length;
-  const wishlistCount = kits.filter((k) => !k.owned).length;
-  const totalSpent = kits
-    .filter((k) => k.purchase_price)
-    .reduce(
-      (sum, k) =>
-        sum +
-        (typeof k.purchase_price === "string"
-          ? parseFloat(k.purchase_price)
-          : k.purchase_price || 0),
-      0
-    );
+  // Calculate stats with useMemo
+  const stats = useMemo(() => {
+    const ownedCount = kits.filter((k) => k.owned).length;
+    const totalSpent = kits
+      .filter((k) => k.purchase_price)
+      .reduce(
+        (sum, k) =>
+          sum +
+          (typeof k.purchase_price === "string"
+            ? parseFloat(k.purchase_price)
+            : k.purchase_price || 0),
+        0
+      );
+    return { ownedCount, totalSpent };
+  }, [kits]);
 
   return (
     <div className="space-y-8 width-full">
@@ -226,7 +224,7 @@ export default function DashboardContent() {
         <div className="rounded-lg border-2 border-gray-400 bg-white/20 dark:bg-gray-800/20 p-6 backdrop-blur-sm dark:border-gray-600">
           <p className="text-sm text-gray-600 dark:text-gray-400">Owned</p>
           <p className="mt-2 text-3xl font-bold text-green-600 dark:text-green-400">
-            {ownedCount}
+            {stats.ownedCount}
           </p>
         </div>
         <div className="rounded-lg border-2 border-gray-400 bg-white/20 dark:bg-gray-800/20 p-6 backdrop-blur-sm dark:border-gray-600">
@@ -234,7 +232,10 @@ export default function DashboardContent() {
             Total Spent
           </p>
           <p className="mt-2 text-3xl font-bold text-blue-600 dark:text-blue-400">
-            ${totalSpent.toLocaleString("en-US", { maximumFractionDigits: 0 })}
+            $
+            {stats.totalSpent.toLocaleString("en-US", {
+              maximumFractionDigits: 0,
+            })}
           </p>
         </div>
       </div>
@@ -436,22 +437,8 @@ export default function DashboardContent() {
         </div>
       </div>
 
-      {/* Error Message */}
-      {error && (
-        <div className="rounded-lg bg-red-50 p-4 text-sm text-red-800 dark:bg-red-900/20 dark:text-red-400">
-          {error}
-        </div>
-      )}
-
-      {/* Loading State */}
-      {loading && (
-        <div className="flex justify-center py-12">
-          <div className="h-8 w-8 animate-spin rounded-full border-4 border-gray-200 border-t-blue-600 dark:border-gray-700 dark:border-t-blue-400"></div>
-        </div>
-      )}
-
       {/* Empty State */}
-      {!loading && filteredKits.length === 0 && (
+      {filteredKits.length === 0 && (
         <div className="rounded-lg border-2 border-dashed border-gray-300 p-12 text-center dark:border-gray-600">
           <p className="text-gray-600 dark:text-gray-400">
             {searchQuery
@@ -466,7 +453,7 @@ export default function DashboardContent() {
       )}
 
       {/* Kits Table */}
-      {!loading && filteredKits.length > 0 && (
+      {filteredKits.length > 0 && (
         <>
           <div className="rounded-lg border-2 border-gray-400 w-full bg-white/10 dark:bg-black/20 dark:border-gray-600 backdrop-blur-sm">
             <table className="w-full border-collapse min-w-full">
@@ -642,6 +629,7 @@ function KitTableRow({ kit, onDelete }: KitTableRowProps) {
               alt={kit.model_name}
               className="h-32 w-52 object-contain rounded shadow-md cursor-pointer hover:opacity-80 transition-opacity"
               onClick={() => setShowImageModal(!showImageModal)}
+              loading="lazy"
             />
           ) : (
             <div className="h-32 w-52 bg-gray-300 dark:bg-gray-600 rounded flex items-center justify-center shadow-md">

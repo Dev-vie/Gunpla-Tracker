@@ -1,3 +1,5 @@
+"use client";
+
 export default function Footer() {
   const currentYear = new Date().getFullYear();
 
@@ -71,7 +73,7 @@ export default function Footer() {
 
           <div className="flex items-center gap-6">
             <a
-              href="https://github.com"
+              href="https://github.com/Dev-vie"
               target="_blank"
               rel="noopener noreferrer"
               className="text-sm text-gray-600 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-400 transition-colors"

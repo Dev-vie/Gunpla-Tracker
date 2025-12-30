@@ -4,6 +4,9 @@ import DashboardContent from "@/components/dashboard-content";
 import { createServerClient } from "@/lib/auth-server";
 import { redirect } from "next/navigation";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 export default async function Home() {
   const supabase = await createServerClient();
   const {
@@ -14,12 +17,21 @@ export default async function Home() {
     redirect("/login");
   }
 
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("display_name, username")
-    .eq("user_id", user.id)
-    .maybeSingle();
+  // Fetch data in parallel
+  const [profileData, kitsData] = await Promise.all([
+    supabase
+      .from("profiles")
+      .select("display_name, username")
+      .eq("user_id", user.id)
+      .maybeSingle(),
+    supabase
+      .from("gunpla_kits")
+      .select("*")
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: false }),
+  ]);
 
+  const profile = profileData.data;
   const metadata = (user.user_metadata || {}) as Record<string, unknown>;
   const displayName =
     profile?.display_name ||
@@ -28,6 +40,8 @@ export default async function Home() {
     (metadata["username"] as string | undefined) ||
     user.email ||
     null;
+
+  const kits = kitsData.data || [];
 
   return (
     <div className="relative min-h-screen bg-gray-50 dark:bg-gray-900 overflow-hidden flex flex-col">
@@ -44,7 +58,7 @@ export default async function Home() {
       <div className="relative flex flex-col min-h-screen">
         <Header displayName={displayName} />
         <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8 flex-grow">
-          <DashboardContent />
+          <DashboardContent initialKits={kits} />
         </main>
         <Footer />
       </div>
