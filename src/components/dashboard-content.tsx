@@ -372,7 +372,7 @@ export default function DashboardContent() {
                 : "border border-gray-300 text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"
             }`}
           >
-            ⭐ Exclusive
+            Exclusive
           </button>
           <button
             onClick={() => setExclusiveFilter("regular")}
@@ -679,7 +679,7 @@ function KitTableRow({ kit, onDelete }: KitTableRowProps) {
         <td className="px-3 py-4 text-sm">
           {(kit as any).exclusive ? (
             <span className="inline-block rounded-full bg-yellow-100 px-3 py-1 text-xs font-semibold text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200">
-              ⭐ Exclusive
+              Exclusive
             </span>
           ) : (
             <span className="text-gray-500 dark:text-gray-400 text-xs">
