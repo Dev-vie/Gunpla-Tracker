@@ -69,7 +69,7 @@ export default function KitCard({ kit, priority = false }: KitCardProps) {
           </span>
           {kit.exclusive && (
             <span className="inline-block rounded-full bg-yellow-100 px-3 py-1 text-xs font-semibold text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200">
-              ⭐ Exclusive
+              Exclusive
             </span>
           )}
         </div>
