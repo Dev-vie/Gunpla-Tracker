@@ -31,6 +31,8 @@ const BRANDS = [
   "Other",
 ];
 
+const PRODUCT_LINES = ["Gunpla", "Kamen Rider", "Other Tokusatsu"];
+
 interface DashboardContentProps {
   initialKits: GunplaKit[];
 }
@@ -43,6 +45,9 @@ export default function DashboardContent({
   const [gradeFilter, setGradeFilter] = useState<string | null>(null);
   const [sublineFilter, setSublineFilter] = useState<string | null>(null);
   const [brandFilter, setBrandFilter] = useState<string>("all");
+  const [productLineFilter, setProductLineFilter] = useState<string | null>(
+    null
+  );
   const [exclusiveFilter, setExclusiveFilter] = useState<
     "all" | "exclusive" | "regular"
   >("all");
@@ -82,6 +87,8 @@ export default function DashboardContent({
       const matchesBrand = brandFilter === "all" || kit.brand === brandFilter;
       const matchesGrade = !gradeFilter || kit.grade === gradeFilter;
       const matchesSubline = !sublineFilter || kit.subline === sublineFilter;
+      const matchesProductLine =
+        !productLineFilter || (kit as any).product_line === productLineFilter;
       const matchesExclusive =
         exclusiveFilter === "all" ||
         (exclusiveFilter === "exclusive"
@@ -93,6 +100,7 @@ export default function DashboardContent({
         matchesBrand &&
         matchesGrade &&
         matchesSubline &&
+        matchesProductLine &&
         matchesExclusive
       );
     });
@@ -136,6 +144,7 @@ export default function DashboardContent({
     gradeFilter,
     sublineFilter,
     brandFilter,
+    productLineFilter,
     exclusiveFilter,
     sortBy,
     sortOrder,

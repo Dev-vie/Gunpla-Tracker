@@ -2,36 +2,74 @@
 
 import Image from "next/image";
 import { useState } from "react";
+import {
+  getProductLineBadgeLabel,
+  getProductLineBadgeColor,
+} from "@/lib/gunpla-utils";
 
 interface KitCardProps {
   kit: {
     brand: string;
     id: string;
-    grade: string;
+    grade: string | null;
     model_number: string;
     model_name: string;
     series?: string | null;
     image_url?: string | null;
     subline?: string | null;
     exclusive?: boolean;
+    product_line?: string | null;
   };
   priority?: boolean;
 }
 
+/**
+ * Generate a simple blur placeholder (data URL)
+ * Reduces bandwidth for placeholder display while image loads
+ */
+function getBlurDataUrl(): string {
+  return "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 400 600'%3E%3Crect fill='%23444' width='400' height='600'/%3E%3C/svg%3E";
+}
+
 export default function KitCard({ kit, priority = false }: KitCardProps) {
   const [showImageModal, setShowImageModal] = useState(false);
+  const [imageError, setImageError] = useState(false);
   const imageSrc = (kit.image_url ?? "").trim();
-  const hasImage = imageSrc.length > 0;
-  const prefix =
-    kit.brand !== "Bandai" ? kit.brand : kit.subline ? kit.subline : kit.grade;
+  const hasImage = imageSrc.length > 0 && !imageError;
+
+  // Determine display prefix based on brand and product line
+  const getDisplayPrefix = (): string => {
+    if (kit.brand !== "Bandai") {
+      return kit.brand;
+    }
+
+    const productLine = kit.product_line || "Gunpla";
+
+    if (productLine === "Kamen Rider") {
+      return kit.grade || "FRS";
+    }
+
+    if (productLine === "Other Tokusatsu") {
+      return kit.grade || "Tokusatsu";
+    }
+
+    // Default Gunpla
+    return kit.subline || kit.grade || "Gunpla";
+  };
+
+  const prefix = getDisplayPrefix();
   const displayTitle = `${prefix} ${kit.model_number} ${kit.model_name}`.trim();
   const imageAlt = `${displayTitle}${kit.series ? ` - ${kit.series}` : ""}`;
 
+  // Get badge info
+  const badgeLabel = getProductLineBadgeLabel(kit.product_line);
+  const badgeColor = getProductLineBadgeColor(kit.product_line);
+
   return (
     <div className="group relative flex flex-col overflow-hidden rounded-lg border border-gray-200 bg-white shadow-md transition-all duration-300 hover:shadow-xl dark:border-gray-700 dark:bg-gray-800 hover:scale-105">
-      {/* Image Container */}
+      {/* Image Container - Responsive height */}
       <div
-        className="relative h-72 w-full overflow-hidden bg-gray-100 dark:bg-gray-700 sm:h-80 cursor-pointer"
+        className="relative h-64 w-full overflow-hidden bg-gray-100 dark:bg-gray-700 sm:h-72 md:h-80 cursor-pointer"
         onClick={() => hasImage && setShowImageModal(true)}
       >
         {hasImage ? (
@@ -41,9 +79,13 @@ export default function KitCard({ kit, priority = false }: KitCardProps) {
               alt={imageAlt}
               fill
               className="object-cover transition-transform duration-300 group-hover:brightness-110"
+              quality={70}
               priority={priority}
               loading={priority ? "eager" : "lazy"}
-              sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+              sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, (max-width: 1280px) 33vw, 400px"
+              placeholder="blur"
+              blurDataURL={getBlurDataUrl()}
+              onError={() => setImageError(true)}
             />
 
             {/* Gradient Overlay for Text Readability */}
@@ -62,11 +104,16 @@ export default function KitCard({ kit, priority = false }: KitCardProps) {
 
       {/* Content Section */}
       <div className="flex flex-1 flex-col justify-between p-4">
-        {/* Grade Badge */}
+        {/* Badges */}
         <div className="mb-2 flex gap-2 flex-wrap items-start">
-          <span className="inline-block rounded-full bg-blue-100 px-3 py-1 text-xs font-semibold text-blue-800 dark:bg-blue-900 dark:text-blue-200">
-            {kit.brand !== "Bandai" ? kit.brand : prefix}
+          {/* Product Line Badge */}
+          <span
+            className={`inline-block rounded-full px-3 py-1 text-xs font-semibold ${badgeColor.bg} ${badgeColor.text}`}
+          >
+            {badgeLabel}
           </span>
+
+          {/* Exclusive Badge */}
           {kit.exclusive && (
             <span className="inline-block rounded-full bg-yellow-100 px-3 py-1 text-xs font-semibold text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200">
               Exclusive

@@ -2,6 +2,10 @@
 
 import { useState, useRef, ChangeEvent, DragEvent } from "react";
 import { UseFormSetValue } from "react-hook-form";
+import {
+  generateImageSizes,
+  estimateEgressSavings,
+} from "@/lib/image-optimization";
 
 interface ImageUploadFieldProps {
   preview: string | null;
@@ -15,6 +19,12 @@ export default function ImageUploadField({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isCompressing, setIsCompressing] = useState(false);
+  const [compressionStats, setCompressionStats] = useState<{
+    originalSize: number;
+    compressedSize: number;
+    reduction: string;
+  } | null>(null);
 
   const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
   const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"];
@@ -32,15 +42,40 @@ export default function ImageUploadField({
     return true;
   };
 
-  const handleFileSelect = (file: File) => {
+  const handleFileSelect = async (file: File) => {
     if (!validateFile(file)) return;
 
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const result = e.target?.result as string;
-      setValue("image_url", result);
-    };
-    reader.readAsDataURL(file);
+    setIsCompressing(true);
+    setError(null);
+
+    try {
+      // Generate compressed image sizes
+      const { medium, originalSize, totalCompressedSize } =
+        await generateImageSizes(file);
+
+      // Store compression stats for display
+      const stats = estimateEgressSavings(originalSize, totalCompressedSize);
+      setCompressionStats({
+        originalSize,
+        compressedSize: totalCompressedSize,
+        reduction: stats.reduction,
+      });
+
+      // Convert compressed medium blob to base64 for preview + storage
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const result = e.target?.result as string;
+        setValue("image_url", result);
+      };
+      reader.readAsDataURL(medium);
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : "Failed to compress image";
+      setError(`Compression failed: ${message}`);
+      setCompressionStats(null);
+    } finally {
+      setIsCompressing(false);
+    }
   };
 
   const handleInputChange = (e: ChangeEvent<HTMLInputElement>) => {
@@ -92,13 +127,36 @@ export default function ImageUploadField({
       {/* Helper text */}
       <p className="text-xs text-gray-400">
         Upload box front photo, your built kit, or any reference image (PNG,
-        JPG, WebP, max 10MB)
+        JPG, WebP, max 10MB). Images are automatically compressed to save
+        bandwidth.
       </p>
 
       {/* Error message */}
       {error && (
         <div className="rounded-lg bg-red-900/30 p-3 text-sm text-red-400 border border-red-800">
           {error}
+        </div>
+      )}
+
+      {/* Compression stats */}
+      {compressionStats && (
+        <div className="rounded-lg bg-green-900/30 p-3 text-sm text-green-400 border border-green-800">
+          <p className="font-medium">✓ Compression successful!</p>
+          <p className="text-xs mt-1">
+            {(compressionStats.originalSize / 1024 / 1024).toFixed(2)}MB →{" "}
+            {(compressionStats.compressedSize / 1024 / 1024).toFixed(2)}MB
+            <span className="ml-2 font-semibold text-green-300">
+              {compressionStats.reduction} reduction
+            </span>
+          </p>
+        </div>
+      )}
+
+      {/* Compressing indicator */}
+      {isCompressing && (
+        <div className="rounded-lg bg-blue-900/30 p-3 text-sm text-blue-400 border border-blue-800 flex items-center gap-2">
+          <div className="animate-spin">⏳</div>
+          <span>Compressing image...</span>
         </div>
       )}
 

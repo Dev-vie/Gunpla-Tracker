@@ -36,11 +36,18 @@ export const kitBrandEnum = z.enum([
   'Other',
 ])
 
+export const kitProductLineEnum = z.enum([
+  'Gunpla',
+  'Kamen Rider',
+  'Other Tokusatsu',
+])
+
 export const createGunplaSchema = z
   .object({
     brand: kitBrandEnum.default('Bandai'),
     grade: gunplaGradeEnum.optional(),
     subline: gunplaSublineEnum.nullable().optional(),
+    product_line: kitProductLineEnum.default('Gunpla'),
     model_number: z.string().min(1, 'Model number is required').max(50),
     model_name: z.string().min(1, 'Model name is required').max(255),
     series: z.string().max(100).optional().default(''),
@@ -53,10 +60,11 @@ export const createGunplaSchema = z
     image_url: z.string().optional().nullable(),
   })
   .superRefine((val, ctx) => {
-    if (val.brand === 'Bandai' && !val.grade) {
+    // Grade is required for Gunpla, but optional for Kamen Rider/Other Tokusatsu
+    if (val.brand === 'Bandai' && val.product_line === 'Gunpla' && !val.grade) {
       ctx.addIssue({
         code: 'custom',
-        message: 'Grade is required for Bandai kits',
+        message: 'Grade is required for Gunpla kits',
         path: ['grade'],
       })
     }

@@ -4,7 +4,11 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { createGunplaSchema, kitBrandEnum } from "@/lib/schemas";
+import {
+  createGunplaSchema,
+  kitBrandEnum,
+  kitProductLineEnum,
+} from "@/lib/schemas";
 import { createGunplaKit, updateGunplaKit } from "@/lib/gunpla-actions";
 import { Database } from "@/types/database.types";
 import ImageUploadField from "@/components/image-upload-field";
@@ -12,6 +16,7 @@ import ImageUploadField from "@/components/image-upload-field";
 type GunplaKit = Database["public"]["Tables"]["gunpla_kits"]["Row"] | undefined;
 
 const BRANDS = kitBrandEnum.options;
+const PRODUCT_LINES = kitProductLineEnum.options;
 
 const GRADES = [
   "HG",
@@ -58,7 +63,8 @@ export default function GunplaForm({ kit, onSubmit }: GunplaFormProps) {
     resolver: zodResolver(createGunplaSchema),
     defaultValues: {
       brand: kit?.brand || "Bandai",
-      grade: kit?.grade || "HG",
+      product_line: (kit as any)?.product_line || "Gunpla",
+      grade: kit?.grade ?? "HG",
       subline: (kit as any)?.subline || null,
       model_number: kit?.model_number || "",
       model_name: kit?.model_name || "",
@@ -77,6 +83,7 @@ export default function GunplaForm({ kit, onSubmit }: GunplaFormProps) {
   );
   const imageUrl = watch("image_url");
   const brand = watch("brand");
+  const productLine = watch("product_line");
   const grade = watch("grade");
 
   useEffect(() => {
@@ -94,8 +101,12 @@ export default function GunplaForm({ kit, onSubmit }: GunplaFormProps) {
     try {
       const submitData = {
         brand: data.brand,
-        grade: data.grade,
-        subline: data.subline || null,
+        product_line: data.product_line,
+        grade: productLine === "Gunpla" ? data.grade : null,
+        subline:
+          productLine === "Gunpla" && grade === "HG"
+            ? data.subline || null
+            : null,
         model_number: data.model_number,
         model_name: data.model_name,
         series: data.series?.trim() || null,
@@ -153,8 +164,38 @@ export default function GunplaForm({ kit, onSubmit }: GunplaFormProps) {
           </select>
         </div>
 
-        {/* Grade */}
+        {/* Product Line - shown only for Bandai */}
         {brand === "Bandai" && (
+          <div className="sm:col-span-2">
+            <label
+              htmlFor="product_line"
+              className="block text-sm font-medium text-gray-700 dark:text-gray-300"
+            >
+              Product Line
+            </label>
+            <select
+              {...register("product_line")}
+              className="mt-1 block w-full rounded-lg border border-gray-300 px-4 py-2 text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-800 dark:text-white"
+            >
+              {PRODUCT_LINES.map((line) => (
+                <option key={line} value={line}>
+                  {line}
+                </option>
+              ))}
+            </select>
+            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+              {productLine === "Gunpla" &&
+                "Gundam model kits with standard grading"}
+              {productLine === "Kamen Rider" &&
+                "Figure-rise Standard & other Kamen Rider lines"}
+              {productLine === "Other Tokusatsu" &&
+                "Ultraman, Sentai, and other tokusatsu properties"}
+            </p>
+          </div>
+        )}
+
+        {/* Grade - shown only for Gunpla, optional for Kamen Rider/Other */}
+        {brand === "Bandai" && productLine === "Gunpla" && (
           <div>
             <label
               htmlFor="grade"
@@ -180,8 +221,34 @@ export default function GunplaForm({ kit, onSubmit }: GunplaFormProps) {
           </div>
         )}
 
-        {/* Subline (HG only) */}
-        {brand === "Bandai" && grade === "HG" && (
+        {/* Grade - optional for Kamen Rider */}
+        {brand === "Bandai" && productLine === "Kamen Rider" && (
+          <div>
+            <label
+              htmlFor="grade"
+              className="block text-sm font-medium text-gray-700 dark:text-gray-300"
+            >
+              Grade (optional)
+            </label>
+            <select
+              {...register("grade")}
+              className="mt-1 block w-full rounded-lg border border-gray-300 px-4 py-2 text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-800 dark:text-white"
+            >
+              <option value="">Select grade or leave blank</option>
+              {GRADES.map((grade) => (
+                <option key={grade} value={grade}>
+                  {grade}
+                </option>
+              ))}
+            </select>
+            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+              Leave blank for Figure-rise Standard (FRS) kits
+            </p>
+          </div>
+        )}
+
+        {/* Subline (HG only, Gunpla only) */}
+        {brand === "Bandai" && productLine === "Gunpla" && grade === "HG" && (
           <div>
             <label
               htmlFor="subline"
