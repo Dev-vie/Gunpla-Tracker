@@ -64,7 +64,7 @@ export default function GunplaForm({ kit, onSubmit }: GunplaFormProps) {
     defaultValues: {
       brand: kit?.brand || "Bandai",
       product_line: (kit as any)?.product_line || "Gunpla",
-      grade: kit?.grade ?? "HG",
+      grade: ((kit?.grade as any) ?? "HG") as any,
       subline: (kit as any)?.subline || null,
       model_number: kit?.model_number || "",
       model_name: kit?.model_name || "",
