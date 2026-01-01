@@ -96,15 +96,6 @@ export default function GunplaCard({ kit }: GunplaCardProps) {
         )}
       </div>
 
-      {/* Notes */}
-      {kit.notes && (
-        <div className="mt-4">
-          <p className="text-sm text-gray-700 dark:text-gray-300">
-            {kit.notes}
-          </p>
-        </div>
-      )}
-
       {/* Actions */}
       <div className="mt-6 flex gap-2">
         <Link
