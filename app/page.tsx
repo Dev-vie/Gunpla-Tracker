@@ -19,7 +19,12 @@ export default async function Home() {
   }
 
   // Ensure every authenticated account has a profile row.
-  await ensureProfileRow(supabase, user);
+  // This must never break the page render on deploy or first-login edge cases.
+  try {
+    await ensureProfileRow(supabase, user);
+  } catch (error) {
+    console.error("Profile bootstrap failed on home render:", error);
+  }
 
   // Fetch data in parallel
   const [profileData, kitsData] = await Promise.all([

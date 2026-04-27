@@ -14,7 +14,11 @@ async function getProfilePageData() {
     redirect("/login");
   }
 
-  await ensureProfileRow(supabase, user);
+  try {
+    await ensureProfileRow(supabase, user);
+  } catch (error) {
+    console.error("Profile bootstrap failed on profile render:", error);
+  }
 
   const { data: profile } = await supabase
     .from("profiles")
