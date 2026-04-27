@@ -7,7 +7,6 @@
  */
 
 const CACHE_VERSION = "gunpla-v1";
-const CACHE_URLS = ["gunpla-cache"];
 
 // Cache images aggressively
 const CACHE_PATTERNS = [
@@ -16,7 +15,7 @@ const CACHE_PATTERNS = [
 ];
 
 // Install event
-self.addEventListener("install", (event) => {
+self.addEventListener("install", () => {
   console.log("[ServiceWorker] Installing...");
   self.skipWaiting();
 });

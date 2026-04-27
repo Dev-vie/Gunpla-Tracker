@@ -1,7 +1,9 @@
 "use client";
 
+import Image from "next/image";
 import { useState, useRef, ChangeEvent, DragEvent } from "react";
 import { UseFormSetValue } from "react-hook-form";
+import { CreateGunplaFormInput } from "@/lib/schemas";
 import {
   generateImageSizes,
   estimateEgressSavings,
@@ -9,7 +11,7 @@ import {
 
 interface ImageUploadFieldProps {
   preview: string | null;
-  setValue: UseFormSetValue<any>;
+  setValue: UseFormSetValue<CreateGunplaFormInput>;
 }
 
 export default function ImageUploadField({
@@ -164,9 +166,11 @@ export default function ImageUploadField({
       {preview && (
         <div className="space-y-3">
           <div className="relative inline-block">
-            <img
+            <Image
               src={preview}
               alt="Preview"
+              width={512}
+              height={512}
               className="max-h-64 rounded-lg object-contain shadow-lg"
             />
           </div>

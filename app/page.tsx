@@ -2,6 +2,7 @@ import Header from "@/components/header";
 import Footer from "@/components/footer";
 import DashboardContent from "@/components/dashboard-content";
 import { createServerClient } from "@/lib/auth-server";
+import { ensureProfileRow } from "@/lib/profile-bootstrap";
 import { redirect } from "next/navigation";
 
 export const dynamic = "force-dynamic";
@@ -16,6 +17,9 @@ export default async function Home() {
   if (!user) {
     redirect("/login");
   }
+
+  // Ensure every authenticated account has a profile row.
+  await ensureProfileRow(supabase, user);
 
   // Fetch data in parallel
   const [profileData, kitsData] = await Promise.all([

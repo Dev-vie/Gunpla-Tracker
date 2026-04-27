@@ -132,7 +132,6 @@ export async function uploadImageSizes(
     size: "thumbnail" | "medium" | "full"
   ) => {
     const fileName = `${kitId}_${size}_${timestamp}.webp`;
-    const path = `gunpla-images/${kitId}/${fileName}`;
 
     const response = await fetch(
       `${supabaseStorageUrl}/storage/v1/object/gunpla-images/${kitId}/${fileName}`,

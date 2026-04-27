@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
+  CreateGunplaFormInput,
   createGunplaSchema,
   kitBrandEnum,
   kitProductLineEnum,
@@ -13,7 +14,12 @@ import { createGunplaKit, updateGunplaKit } from "@/lib/gunpla-actions";
 import { Database } from "@/types/database.types";
 import ImageUploadField from "@/components/image-upload-field";
 
-type GunplaKit = Database["public"]["Tables"]["gunpla_kits"]["Row"] | undefined;
+type GunplaKit =
+  | (Database["public"]["Tables"]["gunpla_kits"]["Row"] & {
+      product_line?: string | null;
+      exclusive?: boolean | null;
+    })
+  | undefined;
 
 const BRANDS = kitBrandEnum.options;
 const PRODUCT_LINES = kitProductLineEnum.options;
@@ -53,48 +59,48 @@ export default function GunplaForm({ kit, onSubmit }: GunplaFormProps) {
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  const kitGrade = kit?.grade;
+  const defaultGrade =
+    typeof kitGrade === "string" &&
+    (GRADES as readonly string[]).includes(kitGrade)
+      ? (kitGrade as (typeof GRADES)[number])
+      : "HG";
+
   const {
     register,
     handleSubmit,
     formState: { errors },
-    watch,
+    control,
     setValue,
-  } = useForm({
+  } = useForm<CreateGunplaFormInput>({
     resolver: zodResolver(createGunplaSchema),
     defaultValues: {
       brand: kit?.brand || "Bandai",
-      product_line: (kit as any)?.product_line || "Gunpla",
-      grade: ((kit?.grade as any) ?? "HG") as any,
-      subline: (kit as any)?.subline || null,
+      product_line: kit?.product_line || "Gunpla",
+      grade: defaultGrade,
+      subline: kit?.subline || null,
       model_number: kit?.model_number || "",
       model_name: kit?.model_name || "",
       series: kit?.series || "",
       release_year: kit?.release_year?.toString() || "",
-      owned: kit?.owned ? true : false,
-      exclusive: (kit as any)?.exclusive ? true : false,
+      owned: Boolean(kit?.owned),
+      exclusive: Boolean(kit?.exclusive),
       purchase_date: kit?.purchase_date || "",
       purchase_price: kit?.purchase_price?.toString() || "",
       image_url: kit?.image_url || "",
     },
   });
 
-  const [imagePreview, setImagePreview] = useState<string | null>(
-    kit?.image_url || null
-  );
-  const imageUrl = watch("image_url");
-  const brand = watch("brand");
-  const productLine = watch("product_line");
-  const grade = watch("grade");
+  const imageUrl = useWatch({ control, name: "image_url" });
+  const brand = useWatch({ control, name: "brand" });
+  const productLine = useWatch({ control, name: "product_line" });
+  const grade = useWatch({ control, name: "grade" });
+  const imagePreview =
+    typeof imageUrl === "string" && imageUrl.trim() !== ""
+      ? imageUrl
+      : kit?.image_url || null;
 
-  useEffect(() => {
-    if (imageUrl && typeof imageUrl === "string" && imageUrl.trim() !== "") {
-      setImagePreview(imageUrl);
-    } else {
-      setImagePreview(null);
-    }
-  }, [imageUrl]);
-
-  const onSubmitForm = async (data: any) => {
+  const onSubmitForm = async (data: CreateGunplaFormInput) => {
     setError(null);
     setIsSubmitting(true);
 
@@ -102,7 +108,7 @@ export default function GunplaForm({ kit, onSubmit }: GunplaFormProps) {
       const submitData = {
         brand: data.brand,
         product_line: data.product_line,
-        grade: productLine === "Gunpla" ? data.grade : null,
+        grade: productLine === "Gunpla" ? (data.grade ?? "HG") : "HG",
         subline:
           productLine === "Gunpla" && grade === "HG"
             ? data.subline || null

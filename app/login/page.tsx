@@ -47,7 +47,7 @@ export default function LoginPage() {
           setLoading(false);
           return;
         }
-        await (signUp as any)(email, password, username); // allow username to flow through
+        await signUp(email, password, username);
       } else {
         await signIn(identifier, password);
       }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useMemo } from "react";
 import { Database } from "@/types/database.types";
 import {
   calculateImageStats,

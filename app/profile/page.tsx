@@ -1,6 +1,7 @@
 import Header from "@/components/header";
 import ProfileForm from "@/components/profile-form";
 import { createServerClient } from "@/lib/auth-server";
+import { ensureProfileRow } from "@/lib/profile-bootstrap";
 import { redirect } from "next/navigation";
 
 async function getProfilePageData() {
@@ -12,6 +13,8 @@ async function getProfilePageData() {
   if (!user) {
     redirect("/login");
   }
+
+  await ensureProfileRow(supabase, user);
 
   const { data: profile } = await supabase
     .from("profiles")
@@ -36,6 +39,7 @@ async function getProfilePageData() {
 
 export default async function ProfilePage() {
   const { user, profile, displayName } = await getProfilePageData();
+  const userMetadata = (user.user_metadata || {}) as Record<string, unknown>;
 
   return (
     <div className="relative min-h-screen bg-gray-50 dark:bg-gray-900 overflow-hidden">
@@ -55,7 +59,10 @@ export default async function ProfilePage() {
           <ProfileForm
             initialDisplayName={profile?.display_name ?? ""}
             initialUsername={
-              profile?.username ?? (user.user_metadata as any)?.username ?? ""
+              profile?.username ??
+              (typeof userMetadata["username"] === "string"
+                ? userMetadata["username"]
+                : "")
             }
             email={user.email ?? ""}
           />

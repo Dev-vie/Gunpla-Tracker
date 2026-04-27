@@ -1,12 +1,15 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useMemo } from "react";
+import Image from "next/image";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { deleteGunplaKit } from "@/lib/gunpla-actions";
 import { Database } from "@/types/database.types";
 
-type GunplaKit = Database["public"]["Tables"]["gunpla_kits"]["Row"];
+type GunplaKit = Database["public"]["Tables"]["gunpla_kits"]["Row"] & {
+  product_line?: string | null;
+  exclusive?: boolean | null;
+};
 
 const SUBLINES = [
   "HGUC",
@@ -31,8 +34,6 @@ const BRANDS = [
   "Other",
 ];
 
-const PRODUCT_LINES = ["Gunpla", "Kamen Rider", "Other Tokusatsu"];
-
 interface DashboardContentProps {
   initialKits: GunplaKit[];
 }
@@ -45,9 +46,6 @@ export default function DashboardContent({
   const [gradeFilter, setGradeFilter] = useState<string | null>(null);
   const [sublineFilter, setSublineFilter] = useState<string | null>(null);
   const [brandFilter, setBrandFilter] = useState<string>("all");
-  const [productLineFilter, setProductLineFilter] = useState<string | null>(
-    null
-  );
   const [exclusiveFilter, setExclusiveFilter] = useState<
     "all" | "exclusive" | "regular"
   >("all");
@@ -59,12 +57,6 @@ export default function DashboardContent({
   const [currentPage, setCurrentPage] = useState(1);
   const [showAll, setShowAll] = useState(false);
   const ITEMS_PER_PAGE = 20;
-
-  useEffect(() => {
-    if (gradeFilter !== "HG") {
-      setSublineFilter(null);
-    }
-  }, [gradeFilter]);
 
   // Use useMemo for expensive filtering and sorting operations
   const filteredKits = useMemo(() => {
@@ -87,20 +79,17 @@ export default function DashboardContent({
       const matchesBrand = brandFilter === "all" || kit.brand === brandFilter;
       const matchesGrade = !gradeFilter || kit.grade === gradeFilter;
       const matchesSubline = !sublineFilter || kit.subline === sublineFilter;
-      const matchesProductLine =
-        !productLineFilter || (kit as any).product_line === productLineFilter;
       const matchesExclusive =
         exclusiveFilter === "all" ||
         (exclusiveFilter === "exclusive"
-          ? (kit as any).exclusive
-          : !(kit as any).exclusive);
+          ? Boolean(kit.exclusive)
+          : !kit.exclusive);
 
       return (
         matchesSearch &&
         matchesBrand &&
         matchesGrade &&
         matchesSubline &&
-        matchesProductLine &&
         matchesExclusive
       );
     });
@@ -114,7 +103,7 @@ export default function DashboardContent({
           compareValue = a.model_number.localeCompare(
             b.model_number,
             undefined,
-            { numeric: true }
+            { numeric: true },
           );
         } else if (sortBy === "model_name") {
           compareValue = a.model_name.localeCompare(b.model_name);
@@ -144,20 +133,18 @@ export default function DashboardContent({
     gradeFilter,
     sublineFilter,
     brandFilter,
-    productLineFilter,
     exclusiveFilter,
     sortBy,
     sortOrder,
   ]);
 
-  // Reset to first page when filters change
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [filteredKits.length]);
-
   // Calculate pagination
-  const totalPages = Math.ceil(filteredKits.length / ITEMS_PER_PAGE);
-  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+  const totalPages = Math.max(
+    1,
+    Math.ceil(filteredKits.length / ITEMS_PER_PAGE),
+  );
+  const effectiveCurrentPage = Math.min(currentPage, totalPages);
+  const startIndex = (effectiveCurrentPage - 1) * ITEMS_PER_PAGE;
   const endIndex = startIndex + ITEMS_PER_PAGE;
   const currentKits = showAll
     ? filteredKits
@@ -184,7 +171,7 @@ export default function DashboardContent({
         }
         pages.push("...");
         pages.push(totalPages);
-      } else if (currentPage >= totalPages - 2) {
+      } else if (effectiveCurrentPage >= totalPages - 2) {
         // Near the end
         pages.push("...");
         for (let i = totalPages - 4; i <= totalPages; i++) {
@@ -193,7 +180,11 @@ export default function DashboardContent({
       } else {
         // In the middle
         pages.push("...");
-        for (let i = currentPage - 1; i <= currentPage + 1; i++) {
+        for (
+          let i = effectiveCurrentPage - 1;
+          i <= effectiveCurrentPage + 1;
+          i++
+        ) {
           pages.push(i);
         }
         pages.push("...");
@@ -215,7 +206,7 @@ export default function DashboardContent({
           (typeof k.purchase_price === "string"
             ? parseFloat(k.purchase_price)
             : k.purchase_price || 0),
-        0
+        0,
       );
     return { ownedCount, totalSpent };
   }, [kits]);
@@ -264,7 +255,10 @@ export default function DashboardContent({
             {(["all", "owned", "wishlist"] as const).map((f) => (
               <button
                 key={f}
-                onClick={() => setFilter(f)}
+                onClick={() => {
+                  setFilter(f);
+                  setCurrentPage(1);
+                }}
                 className={`rounded-lg px-4 py-2 font-medium transition-colors ${
                   filter === f
                     ? "bg-blue-600 text-white"
@@ -280,7 +274,10 @@ export default function DashboardContent({
         {/* Brand Filter */}
         <div className="flex flex-wrap gap-2">
           <button
-            onClick={() => setBrandFilter("all")}
+            onClick={() => {
+              setBrandFilter("all");
+              setCurrentPage(1);
+            }}
             className={`rounded-lg px-3 py-1 text-sm font-medium transition-colors ${
               brandFilter === "all"
                 ? "bg-purple-600 text-white"
@@ -292,7 +289,10 @@ export default function DashboardContent({
           {BRANDS.map((brand) => (
             <button
               key={brand}
-              onClick={() => setBrandFilter(brand)}
+              onClick={() => {
+                setBrandFilter(brand);
+                setCurrentPage(1);
+              }}
               className={`rounded-lg px-3 py-1 text-sm font-medium transition-colors ${
                 brandFilter === brand
                   ? "bg-blue-600 text-white"
@@ -307,7 +307,11 @@ export default function DashboardContent({
         {/* Grade Filter */}
         <div className="flex flex-wrap gap-2">
           <button
-            onClick={() => setGradeFilter(null)}
+            onClick={() => {
+              setGradeFilter(null);
+              setSublineFilter(null);
+              setCurrentPage(1);
+            }}
             className={`rounded-lg px-3 py-1 text-sm font-medium transition-colors ${
               gradeFilter === null
                 ? "bg-gray-600 text-white"
@@ -320,7 +324,13 @@ export default function DashboardContent({
             (grade) => (
               <button
                 key={grade}
-                onClick={() => setGradeFilter(grade)}
+                onClick={() => {
+                  setGradeFilter(grade);
+                  if (grade !== "HG") {
+                    setSublineFilter(null);
+                  }
+                  setCurrentPage(1);
+                }}
                 className={`rounded-lg px-3 py-1 text-sm font-medium transition-colors ${
                   gradeFilter === grade
                     ? "bg-blue-600 text-white"
@@ -329,7 +339,7 @@ export default function DashboardContent({
               >
                 {grade}
               </button>
-            )
+            ),
           )}
         </div>
 
@@ -337,7 +347,10 @@ export default function DashboardContent({
         {gradeFilter === "HG" && (
           <div className="flex flex-wrap gap-2">
             <button
-              onClick={() => setSublineFilter(null)}
+              onClick={() => {
+                setSublineFilter(null);
+                setCurrentPage(1);
+              }}
               className={`rounded-lg px-3 py-1 text-sm font-medium transition-colors ${
                 sublineFilter === null
                   ? "bg-gray-600 text-white"
@@ -349,7 +362,10 @@ export default function DashboardContent({
             {SUBLINES.map((subline) => (
               <button
                 key={subline}
-                onClick={() => setSublineFilter(subline)}
+                onClick={() => {
+                  setSublineFilter(subline);
+                  setCurrentPage(1);
+                }}
                 className={`rounded-lg px-3 py-1 text-sm font-medium transition-colors ${
                   sublineFilter === subline
                     ? "bg-blue-600 text-white"
@@ -365,7 +381,10 @@ export default function DashboardContent({
         {/* Exclusive Filter */}
         <div className="flex flex-wrap gap-2">
           <button
-            onClick={() => setExclusiveFilter("all")}
+            onClick={() => {
+              setExclusiveFilter("all");
+              setCurrentPage(1);
+            }}
             className={`rounded-lg px-3 py-1 text-sm font-medium transition-colors ${
               exclusiveFilter === "all"
                 ? "bg-gray-600 text-white"
@@ -375,7 +394,10 @@ export default function DashboardContent({
             All Editions
           </button>
           <button
-            onClick={() => setExclusiveFilter("exclusive")}
+            onClick={() => {
+              setExclusiveFilter("exclusive");
+              setCurrentPage(1);
+            }}
             className={`rounded-lg px-3 py-1 text-sm font-medium transition-colors ${
               exclusiveFilter === "exclusive"
                 ? "bg-blue-600 text-white"
@@ -385,7 +407,10 @@ export default function DashboardContent({
             Exclusive
           </button>
           <button
-            onClick={() => setExclusiveFilter("regular")}
+            onClick={() => {
+              setExclusiveFilter("regular");
+              setCurrentPage(1);
+            }}
             className={`rounded-lg px-3 py-1 text-sm font-medium transition-colors ${
               exclusiveFilter === "regular"
                 ? "bg-blue-600 text-white"
@@ -403,15 +428,16 @@ export default function DashboardContent({
           </span>
           <select
             value={sortBy || ""}
-            onChange={(e) =>
+            onChange={(e) => {
               setSortBy(
                 (e.target.value as
                   | "model_number"
                   | "model_name"
                   | "price"
-                  | null) || null
-              )
-            }
+                  | null) || null,
+              );
+              setCurrentPage(1);
+            }}
             className="rounded-lg border-2 border-gray-400 bg-white/20 dark:bg-gray-800/20 backdrop-blur-sm px-3 py-1 text-sm text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-gray-600 dark:text-white"
           >
             <option value="">None</option>
@@ -422,7 +448,10 @@ export default function DashboardContent({
           {sortBy && (
             <div className="flex gap-2">
               <button
-                onClick={() => setSortOrder("asc")}
+                onClick={() => {
+                  setSortOrder("asc");
+                  setCurrentPage(1);
+                }}
                 className={`rounded-lg px-3 py-1 text-sm font-medium transition-colors ${
                   sortOrder === "asc"
                     ? "bg-blue-600 text-white"
@@ -432,7 +461,10 @@ export default function DashboardContent({
                 {sortBy === "price" ? "Low to High" : "Ascending"}
               </button>
               <button
-                onClick={() => setSortOrder("desc")}
+                onClick={() => {
+                  setSortOrder("desc");
+                  setCurrentPage(1);
+                }}
                 className={`rounded-lg px-3 py-1 text-sm font-medium transition-colors ${
                   sortOrder === "desc"
                     ? "bg-blue-600 text-white"
@@ -453,10 +485,10 @@ export default function DashboardContent({
             {searchQuery
               ? "No kits match your search"
               : filter === "owned"
-              ? "No owned kits yet"
-              : filter === "wishlist"
-              ? "No wishlist items yet"
-              : "No kits yet. Add your first kit!"}
+                ? "No owned kits yet"
+                : filter === "wishlist"
+                  ? "No wishlist items yet"
+                  : "No kits yet. Add your first kit!"}
           </p>
         </div>
       )}
@@ -526,7 +558,7 @@ export default function DashboardContent({
                     ? `Showing all ${filteredKits.length} kits`
                     : `Showing ${startIndex + 1} to ${Math.min(
                         endIndex,
-                        filteredKits.length
+                        filteredKits.length,
                       )} of ${filteredKits.length} kits`}
                 </span>
               </div>
@@ -554,7 +586,7 @@ export default function DashboardContent({
                       onClick={() =>
                         setCurrentPage((prev) => Math.max(1, prev - 1))
                       }
-                      disabled={currentPage === 1}
+                      disabled={effectiveCurrentPage === 1}
                       className="px-3 py-1 rounded-lg border border-gray-300 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"
                     >
                       Previous
@@ -573,16 +605,20 @@ export default function DashboardContent({
                         ) : (
                           <button
                             key={page}
-                            onClick={() => setCurrentPage(page as number)}
+                            onClick={() => {
+                              if (typeof page === "number") {
+                                setCurrentPage(page);
+                              }
+                            }}
                             className={`px-3 py-1 rounded-lg text-sm font-medium transition-colors ${
-                              currentPage === page
+                              effectiveCurrentPage === page
                                 ? "bg-blue-600 text-white"
                                 : "border border-gray-300 text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"
                             }`}
                           >
                             {page}
                           </button>
-                        )
+                        ),
                       )}
                     </div>
 
@@ -591,7 +627,7 @@ export default function DashboardContent({
                       onClick={() =>
                         setCurrentPage((prev) => Math.min(totalPages, prev + 1))
                       }
-                      disabled={currentPage === totalPages}
+                      disabled={effectiveCurrentPage === totalPages}
                       className="px-3 py-1 rounded-lg border border-gray-300 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"
                     >
                       Next
@@ -633,9 +669,11 @@ function KitTableRow({ kit, onDelete }: KitTableRowProps) {
       <tr className="border-b-2 border-gray-400 dark:border-gray-600">
         <td className="px-3 py-4 text-sm">
           {kit.image_url ? (
-            <img
+            <Image
               src={kit.image_url}
               alt={kit.model_name}
+              width={208}
+              height={128}
               className="h-32 w-52 object-contain rounded shadow-md cursor-pointer hover:opacity-80 transition-opacity"
               onClick={() => setShowImageModal(!showImageModal)}
               loading="lazy"
@@ -669,12 +707,12 @@ function KitTableRow({ kit, onDelete }: KitTableRowProps) {
             {kit.brand !== "Bandai"
               ? "—"
               : kit.subline && kit.grade === "HG"
-              ? kit.subline
-              : kit.grade}
+                ? kit.subline
+                : kit.grade}
           </span>
         </td>
         <td className="px-3 py-4 text-sm">
-          {(kit as any).exclusive ? (
+          {kit.exclusive ? (
             <span className="inline-block rounded-full bg-yellow-100 px-3 py-1 text-xs font-semibold text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200">
               Exclusive
             </span>
@@ -772,9 +810,11 @@ function KitTableRow({ kit, onDelete }: KitTableRowProps) {
                 ×
               </button>
               <div className="relative w-full max-w-2xl">
-                <img
+                <Image
                   src={kit.image_url}
                   alt={kit.model_name}
+                  width={1200}
+                  height={800}
                   className="w-full h-auto rounded-lg shadow-lg"
                 />
               </div>

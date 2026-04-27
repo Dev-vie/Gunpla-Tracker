@@ -2,11 +2,7 @@
 
 import Link from "next/link";
 import { Database } from "@/types/database.types";
-import {
-  formatGunplaDisplay,
-  formatCurrency,
-  getSeriesAbbreviation,
-} from "@/lib/gunpla-utils";
+import { formatCurrency, getSeriesAbbreviation } from "@/lib/gunpla-utils";
 import { useState } from "react";
 import { deleteGunplaKit } from "@/lib/gunpla-actions";
 import { useRouter } from "next/navigation";
@@ -23,7 +19,6 @@ export default function GunplaCard({ kit }: GunplaCardProps) {
   const [showConfirm, setShowConfirm] = useState(false);
 
   const seriesAbbrev = getSeriesAbbreviation(kit.series);
-  const displayName = formatGunplaDisplay(kit);
 
   const handleDelete = async () => {
     setIsDeleting(true);

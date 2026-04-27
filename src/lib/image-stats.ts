@@ -31,7 +31,6 @@ export function calculateImageStats(kits: GunplaKit[]): ImageStats {
   // Compression ratio: ~6.5x reduction per image
   
   const ESTIMATED_SIZE_PER_KIT_OPTIMIZED = 330 * 1024; // 330KB after compression
-  const ESTIMATED_SIZE_PER_KIT_ORIGINAL = 2.5 * 1024 * 1024; // 2.5MB before compression
   
   const totalOptimizedSize = kitsWithImages * ESTIMATED_SIZE_PER_KIT_OPTIMIZED;
   const averageSize = kitsWithImages > 0 ? totalOptimizedSize / kitsWithImages : 0;

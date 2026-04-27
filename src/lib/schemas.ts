@@ -71,3 +71,4 @@ export const createGunplaSchema = z
   })
 
 export type CreateGunplaInput = z.infer<typeof createGunplaSchema>
+export type CreateGunplaFormInput = z.input<typeof createGunplaSchema>
