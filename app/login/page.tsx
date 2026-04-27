@@ -52,8 +52,23 @@ export default function LoginPage() {
         await signIn(identifier, password);
       }
     } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+
+      // Vercel deploys can briefly serve a stale client bundle with old action IDs.
+      // Force one hard refresh so the browser picks up the latest action manifest.
+      if (
+        message.includes("failed-to-find-server-action") ||
+        (message.includes("Server Action") &&
+          message.includes("not found on the server"))
+      ) {
+        setError("App updated. Refreshing to sync the latest version...");
+        setLoading(false);
+        window.location.reload();
+        return;
+      }
+
       // redirect() throws an error, but it's not an actual error
-      if (err instanceof Error && err.message.includes("NEXT_REDIRECT")) {
+      if (message.includes("NEXT_REDIRECT")) {
         // This is expected - redirect is happening
         return;
       }
